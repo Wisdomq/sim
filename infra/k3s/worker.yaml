@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: simcards-celery-worker
+  namespace: simcards
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: simcards-celery-worker
+  template:
+    metadata:
+      labels:
+        app: simcards-celery-worker
+    spec:
+      imagePullSecrets:
+        - name: registry-credentials
+      containers:
+        - name: worker
+          image: ghcr.io/simcards/backend:latest
+          imagePullPolicy: IfNotPresent
+          command: ["celery", "-A", "simcards_backend.celery_app", "worker", "--loglevel=info", "--concurrency=2"]
+          envFrom:
+            - configMapRef:
+                name: simcards-env
+            - secretRef:
+                name: simcards-secrets
+          volumeMounts:
+            - name: uploads
+              mountPath: /app/uploads
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 1Gi
+      volumes:
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: simcards-uploads
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: simcards-celery-beat
+  namespace: simcards
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: simcards-celery-beat
+  template:
+    metadata:
+      labels:
+        app: simcards-celery-beat
+    spec:
+      imagePullSecrets:
+        - name: registry-credentials
+      containers:
+        - name: beat
+          image: ghcr.io/simcards/backend:latest
+          imagePullPolicy: IfNotPresent
+          command: ["celery", "-A", "simcards_backend.celery_app", "beat", "--loglevel=info"]
+          envFrom:
+            - configMapRef:
+                name: simcards-env
+            - secretRef:
+                name: simcards-secrets
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi

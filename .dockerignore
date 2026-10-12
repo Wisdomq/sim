@@ -1,0 +1,38 @@
+.git
+.github
+.gitignore
+
+# Python environments / caches
+**/.venv
+**/venv
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/.pytest_cache
+**/*.egg-info
+
+# Node
+**/node_modules
+
+# Build output (never needed inside the API image)
+mobile/build
+**/.dart_tool
+web/dist
+web/Dockerfile
+web/nginx.conf
+
+# Local data
+uploads
+backend/uploads
+**/*.pdf
+**/*.xlsx
+
+# Infra not used by the API image
+infra/k3s
+docs
+tests
+scripts
+design.md
+requirements.md
+tasks.md
+*.md

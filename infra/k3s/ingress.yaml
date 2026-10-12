@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: simcards
+  namespace: simcards
+  annotations:
+    kubernetes.io/ingress.class: traefik
+    # cert-manager + Let's Encrypt (enable after DNS A record points at the LB):
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  rules:
+    - host: simcards.example.com   # TODO: replace with the real prod host
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: simcards-api
+                port:
+                  number: 8000
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: simcards-web
+                port:
+                  number: 80
+  # tls:
+  #   - hosts: [simcards.example.com]
+  #     secretName: simcards-tls

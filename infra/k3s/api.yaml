@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: simcards-uploads
+  namespace: simcards
+spec:
+  accessModes: ["ReadWriteMany"]
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: simcards-api
+  namespace: simcards
+spec:
+  selector:
+    app: simcards-api
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: simcards-api
+  namespace: simcards
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: simcards-api
+  template:
+    metadata:
+      labels:
+        app: simcards-api
+    spec:
+      imagePullSecrets:
+        - name: registry-credentials
+      initContainers:
+        - name: wait-for-postgres
+          image: ghcr.io/simcards/backend:latest
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h simcards-postgres -p 5432 2>/dev/null; do sleep 2; done
+      containers:
+        - name: api
+          image: ghcr.io/simcards/backend:latest
+          imagePullPolicy: IfNotPresent
+          command: ["uvicorn", "simcards_backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+          envFrom:
+            - configMapRef:
+                name: simcards-env
+            - secretRef:
+                name: simcards-secrets
+          ports:
+            - containerPort: 8000
+          volumeMounts:
+            - name: uploads
+              mountPath: /app/uploads
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 1Gi
+      volumes:
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: simcards-uploads

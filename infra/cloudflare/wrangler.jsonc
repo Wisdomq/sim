@@ -1,0 +1,53 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "simcards",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-06",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // The React SPA (web/dist) and the FastAPI container are served from ONE origin,
+  // so the web app's relative axios baseURL "/api/v1" works with no code changes.
+  "assets": {
+    "directory": "../../web/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api", "/api/*", "/health", "/docs", "/redoc", "/openapi.json"]
+  },
+
+  "containers": [
+    {
+      "class_name": "SimcardsApi",
+      "image": "./Dockerfile",
+      "image_build_context": "../..",
+      "max_instances": 1,
+      "instance_type": "basic"
+    }
+  ],
+
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "SIMCARDS_API",
+        "class_name": "SimcardsApi"
+      }
+    ]
+  },
+
+  "exports": {
+    "SimcardsApi": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    }
+  },
+
+  // EDIT these two to your real Worker URL after the first deploy:
+  //   https://simcards.<your-subdomain>.workers.dev
+  "vars": {
+    "CORS_ORIGINS": "https://simcards.CHANGE_ME.workers.dev",
+    "FRONTEND_URL": "https://simcards.CHANGE_ME.workers.dev"
+  },
+
+  "observability": {
+    "enabled": true
+  }
+}

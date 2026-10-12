@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: simcards-web
+  namespace: simcards
+spec:
+  selector:
+    app: simcards-web
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: simcards-web
+  namespace: simcards
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: simcards-web
+  template:
+    metadata:
+      labels:
+        app: simcards-web
+    spec:
+      imagePullSecrets:
+        - name: registry-credentials
+      containers:
+        - name: web
+          image: ghcr.io/simcards/web:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi

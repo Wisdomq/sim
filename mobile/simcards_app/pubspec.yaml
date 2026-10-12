@@ -1,0 +1,79 @@
+name: simcards_app
+description: SIM Stock & Sales Tracking Platform — Android mobile app
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.13.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management
+  flutter_riverpod: ^2.6.1
+
+  # Navigation
+  go_router: ^14.6.2
+
+  # Networking
+  dio: ^5.7.0
+
+  # Secure token storage
+  flutter_secure_storage: ^9.2.2
+
+  # Preferences (sync cursor, misc)
+  shared_preferences: ^2.3.3
+
+  # Online/offline detection
+  connectivity_plus: ^6.1.1
+
+  # Local database (offline-first)
+  drift: ^2.22.1
+  drift_flutter: ^0.2.4
+  sqlite3_flutter_libs: ^0.5.26
+
+  # Barcode scanning (ML Kit, offline)
+  mobile_scanner: ^6.0.6
+
+  # UUID for client event IDs
+  uuid: ^4.5.1
+
+  # Date/number formatting
+  intl: ^0.19.0
+
+  # Photo capture for ID photos
+  image_picker: ^1.1.2
+
+  # Open PDF / Excel downloads
+  open_filex: ^4.5.0
+
+  # Pick PDF / Excel files for uploads (pick-lists, Safaricom reports)
+  file_picker: ^8.1.2
+
+  # File download path
+  path_provider: ^2.1.5
+
+  # Path manipulation
+  path: ^1.9.0
+
+dependency_overrides:
+  # file_picker pins android compileSdk 34; newer lifecycle AARs require 36.
+  flutter_plugin_android_lifecycle: 2.0.24
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # Code generation
+  build_runner: ^2.4.13
+  drift_dev: ^2.22.1
+
+  # Linting
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
