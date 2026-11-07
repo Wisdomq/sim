@@ -55,4 +55,4 @@ See individual directory READMEs for setup instructions:
 
 ## License
 
-[To be determined]
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
