@@ -65,7 +65,12 @@ export default {
 
     if (isApiRoute(pathname)) {
       const container = getContainer(env.SIMCARDS_API, "default");
-      await container.startAndWaitForPorts({ ports: [8000] });
+      // Cold start runs redis + alembic before uvicorn binds 8000, so allow
+      // well beyond the default port-ready window.
+      await container.startAndWaitForPorts({
+        ports: [8000],
+        cancellationOptions: { portReadyTimeoutMS: 120_000 },
+      });
       return container.fetch(request);
     }
 

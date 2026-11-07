@@ -1,0 +1,312 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../core/auth/auth_notifier.dart';
+import '../../core/config/api_config.dart';
+import '../../core/network/api_client.dart';
+import '../../core/routing/router.dart';
+
+final _unreadFlagsCountProvider = FutureProvider<int>((ref) async {
+  try {
+    final client = ref.read(apiClientProvider);
+    final resp = await client.get(
+      ApiConfig.flagsNotifications,
+      queryParameters: {'unread_only': true},
+    );
+    final list = resp.data as List? ?? [];
+    return list.length;
+  } catch (_) {
+    return 0;
+  }
+});
+
+final _hqSummaryProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+  try {
+    final client = ref.read(apiClientProvider);
+    final now = DateTime.now();
+    final weekStart = now.subtract(Duration(days: now.weekday - 1));
+
+    // Fetch weekly report for HQ summary
+    final resp = await client.post(
+      ApiConfig.reports,
+      data: {
+        'period_type': 'WEEKLY',
+        'period_start': '${weekStart.year}-${weekStart.month.toString().padLeft(2, '0')}-${weekStart.day.toString().padLeft(2, '0')}',
+        'period_end': '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}',
+      },
+    );
+
+    final data = resp.data as Map<String, dynamic>;
+    final branches = (data['branch_reports'] as List?) ?? [];
+
+    return {
+      'total_sales': data['total_sales_count'] ?? 0,
+      'total_commission': data['total_commission_owed'] ?? 0,
+      'performance': data['overall_performance_percentage'] ?? 0,
+      'branch_count': branches.length,
+    };
+  } catch (e) {
+    return {};
+  }
+});
+
+class HqHomeScreen extends ConsumerWidget {
+  const HqHomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unreadFlags = ref.watch(_unreadFlagsCountProvider).value ?? 0;
+    final summaryAsync = ref.watch(_hqSummaryProvider);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('SimCards — HQ'),
+        actions: [
+          IconButton(
+            icon: Badge(
+              isLabelVisible: unreadFlags > 0,
+              label: Text('$unreadFlags'),
+              child: const Icon(Icons.notifications_outlined),
+            ),
+            onPressed: () => context.push(AppRoutes.hqFlags),
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () => ref.read(authProvider.notifier).logout(),
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Summary Cards
+            summaryAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (_, __) => const SizedBox.shrink(),
+              data: (summary) => _HqSummaryCards(summary: summary),
+            ),
+            const SizedBox(height: 16),
+            // Menu Grid
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              children: [
+                _HqMenuCard(
+                  icon: Icons.add_box_outlined,
+                  label: 'Stock Intake',
+                  onTap: () => context.push(AppRoutes.hqStock),
+                ),
+                _HqMenuCard(
+                  icon: Icons.send_outlined,
+                  label: 'Distribute Stock',
+                  onTap: () => context.push(AppRoutes.hqDistribute),
+                ),
+                _HqMenuCard(
+                  icon: Icons.undo,
+                  label: 'Stock Returns',
+                  onTap: () => context.push(AppRoutes.hqReturnRequest),
+                ),
+                _HqMenuCard(
+                  icon: Icons.payments_outlined,
+                  label: 'Commission Config',
+                  onTap: () => context.push(AppRoutes.hqCommission),
+                ),
+                _HqMenuCard(
+                  icon: Icons.compare_arrows,
+                  label: 'Reconciliation',
+                  onTap: () => context.push(AppRoutes.hqReconciliation),
+                ),
+                _HqMenuCard(
+                  icon: Icons.analytics_outlined,
+                  label: 'Consolidated Reports',
+                  onTap: () => context.push(AppRoutes.hqReports),
+                ),
+                _HqMenuCard(
+                  icon: Icons.flag_outlined,
+                  label: 'Inactivity Flags',
+                  badgeCount: unreadFlags,
+                  onTap: () => context.push(AppRoutes.hqFlags),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HqSummaryCards extends StatelessWidget {
+  const _HqSummaryCards({required this.summary});
+
+  final Map<String, dynamic> summary;
+
+  double _toDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sales = summary['total_sales'] ?? 0;
+    final commission = _toDouble(summary['total_commission']);
+    final performance = _toDouble(summary['performance']);
+    final branchCount = summary['branch_count'] ?? 0;
+
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _SummaryCard(
+                label: 'Weekly Sales',
+                value: '$sales',
+                icon: Icons.shopping_cart_outlined,
+                color: const Color(0xFF4CAF50),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _SummaryCard(
+                label: 'Commission',
+                value: 'KES ${commission.toStringAsFixed(0)}',
+                icon: Icons.payments_outlined,
+                color: const Color(0xFF2196F3),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _SummaryCard(
+                label: 'Org Performance',
+                value: '${performance.toStringAsFixed(1)}%',
+                icon: Icons.trending_up,
+                color: performance >= 100
+                    ? const Color(0xFF2E7D32)
+                    : performance >= 70
+                        ? const Color(0xFFF57F17)
+                        : const Color(0xFFD32F2F),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _SummaryCard(
+                label: 'Active Branches',
+                value: '$branchCount',
+                icon: Icons.business_outlined,
+                color: const Color(0xFF9C27B0),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _SummaryCard extends StatelessWidget {
+  const _SummaryCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, size: 24, color: color),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.grey[600],
+                  ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HqMenuCard extends StatelessWidget {
+  const _HqMenuCard({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.badgeCount = 0,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final int badgeCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 40, color: const Color(0xFF4CAF50)),
+                const SizedBox(height: 10),
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+              ],
+            ),
+            if (badgeCount > 0)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: CircleAvatar(
+                  radius: 12,
+                  backgroundColor: Colors.red,
+                  child: Text(
+                    '$badgeCount',
+                    style: const TextStyle(color: Colors.white, fontSize: 11),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}

@@ -40,12 +40,17 @@
     }
   },
 
-  // EDIT these two to your real Worker URL after the first deploy:
-  //   https://simcards.<your-subdomain>.workers.dev
   "vars": {
-    "CORS_ORIGINS": "https://simcards.CHANGE_ME.workers.dev",
-    "FRONTEND_URL": "https://simcards.CHANGE_ME.workers.dev"
+    "CORS_ORIGINS": "https://simcards.mboya-wisdom.workers.dev",
+    "FRONTEND_URL": "https://simcards.mboya-wisdom.workers.dev"
   },
+
+  // To serve on a custom domain, register it, add the zone to this Cloudflare
+  // account, then uncomment and set CORS_ORIGINS/FRONTEND_URL above to it:
+  // "routes": [
+  //   { "pattern": "simtracking.dev", "custom_domain": true },
+  //   { "pattern": "www.simtracking.dev", "custom_domain": true }
+  // ],
 
   "observability": {
     "enabled": true

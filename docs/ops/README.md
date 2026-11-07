@@ -6,6 +6,8 @@
 | [migrations.md](migrations.md) | Any schema change / deploy/upgrade / rollback |
 | [monitoring.md](monitoring.md) | Incidents, alerting, capacity, log forensics |
 | [deployment-checklist.md](deployment-checklist.md) | Before any deploy: secrets, env vars, config placeholders, release flags |
+| [cloudflare-deploy.md](cloudflare-deploy.md) | Deploying the Worker + container (single origin), migrating Neon, building the release APK |
+| [cloudflare-workers-paid.md](cloudflare-workers-paid.md) | The Workers Paid prerequisite for Containers (current deploy blocker) |
 
 All runbooks assume a Postgres 17 database (`simcards`), Redis 7, the FastAPI
 service, and Celery worker/beat. Local dev URL

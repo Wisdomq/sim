@@ -8,7 +8,9 @@ Create Date: 2026-09-21 22:15:00.000000
 from typing import Sequence, Union
 
 from alembic import op
-import sqlalchemy as sa
+
+from simcards_backend.core.database import Base
+import simcards_backend.models  # noqa: F401
 
 
 # revision identifiers, used by Alembic.
@@ -19,26 +21,15 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.create_table(
-        'password_reset_tokens',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('user_id', sa.Integer(), nullable=False),
-        sa.Column('dealer_id', sa.Integer(), nullable=False),
-        sa.Column('token', sa.String(length=255), nullable=False),
-        sa.Column('expires_at', sa.DateTime(timezone=True), nullable=False),
-        sa.Column('used_at', sa.DateTime(timezone=True), nullable=True),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-        sa.ForeignKeyConstraint(['dealer_id'], ['dealers.id'], ondelete='CASCADE'),
-        sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
-        sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('token', name='uq_password_reset_tokens_token')
-    )
-    op.create_index('ix_password_reset_tokens_expires', 'password_reset_tokens', ['expires_at'])
-    op.create_index('ix_password_reset_tokens_user', 'password_reset_tokens', ['user_id'])
+    # create_all is idempotent per-table: migration 0001 already reflects the
+    # current models, so on a fresh database the table (and its indexes) exist
+    # by now and this is a no-op; on older databases it adds the table.
+    Base.metadata.create_all(bind=op.get_bind())
 
-    # Enable RLS for password_reset_tokens
+    # Enable RLS for password_reset_tokens (idempotent).
     op.execute("""
         ALTER TABLE password_reset_tokens ENABLE ROW LEVEL SECURITY;
+        DROP POLICY IF EXISTS password_reset_tokens_tenant_isolation ON password_reset_tokens;
         CREATE POLICY password_reset_tokens_tenant_isolation ON password_reset_tokens
             FOR ALL
             USING (dealer_id = current_setting('app.current_dealer_id')::int);

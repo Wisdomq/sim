@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required for API access in all build types (release included).
+         The debug/profile manifests also declare it for the tooling. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="simcards_app"
         android:name="${applicationName}"

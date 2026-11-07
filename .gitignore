@@ -10,7 +10,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -84,3 +83,5 @@ web/yarn-error.log*
 Thumbs.db
 node_modules/
 **/node_modules/
+
+docs/ops/

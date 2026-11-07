@@ -33,7 +33,7 @@ uvicorn simcards_backend.main:app --host 0.0.0.0 --port 8000 --workers 1 &
 API_PID=$!
 
 echo "[entrypoint] starting celery worker"
-celery -A simcards_backend.celery_app worker --loglevel=info --concurrency=2 &
+celery -A simcards_backend.celery_app worker --loglevel=info --pool=solo &
 WORKER_PID=$!
 
 echo "[entrypoint] starting celery beat"

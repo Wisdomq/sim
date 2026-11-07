@@ -362,6 +362,16 @@ def test_branch_summary_and_config_lists_deny_ba(hierarchy, client):
     ):
         assert client.get(path, headers=_auth(hq)).status_code in (200, 422)
         assert client.get(path, headers=_auth(b1)).status_code in (200, 422 if path.endswith("ba-daily-target") else 200)
+        if path.endswith("ba-daily-target"):
+            # This endpoint requires branch_id, so the BA check is only
+            # reachable once it is supplied: own branch allowed, other denied.
+            assert client.get(
+                path, headers=_auth(ba1), params={"branch_id": hierarchy["branch1"]["id"]},
+            ).status_code == 200
+            assert client.get(
+                path, headers=_auth(ba1), params={"branch_id": hierarchy["branch2"]["id"]},
+            ).status_code == 403
+            continue
         assert client.get(path, headers=_auth(ba1)).status_code == 403
 
 
